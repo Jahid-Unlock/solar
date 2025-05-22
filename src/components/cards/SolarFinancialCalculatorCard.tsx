@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { showMoney, showNumber, findSolarConfig } from '@/types/utils';
+import { showMoney, showNumber } from '@/types/utils';
 import type { SolarPanelConfig } from '@/types/solar';
 import SolarPanelSlider from './SolarPanelSlider';
 import SolarPanelCountSlider from './SolarPanelCountSlider';
+import MonthlyEnergyBillInput from './MonthlyEnergyBillInput';
 
 export default function SolarFinancialCalculatorCard({
   calculatorInputs,
@@ -13,20 +14,12 @@ export default function SolarFinancialCalculatorCard({
   setConfigId,
   solarPanelConfigs,
   defaultPanelCapacityWatts,
-  initialMonthlyAverageEnergyBill,
-  initialEnergyCostPerKwh,
-  initialPanelCapacityWatts,
-  initialDcToAcDerate,
   setSharedValues
 }: {
-  initialMonthlyAverageEnergyBill?: number;
-  initialEnergyCostPerKwh?: number;
-  initialPanelCapacityWatts?: number;
-  initialDcToAcDerate?: number;
-  defaultPanelCapacityWatts?: number;
   configId: number;
   setConfigId: (id: number) => void;
   solarPanelConfigs: SolarPanelConfig[];
+  defaultPanelCapacityWatts?: number;
   setSharedValues: (values: any) => void;
   calculatorInputs: {
     monthlyAverageEnergyBill: number;
@@ -37,30 +30,6 @@ export default function SolarFinancialCalculatorCard({
   setCalculatorInputs: (inputs: any) => void;
 }) {
   const { monthlyAverageEnergyBill, energyCostPerKwh, panelCapacityWatts, dcToAcDerate } = calculatorInputs;
-
-  // Always recalculate configId when inputs change
-  useEffect(() => {
-    const panelCapacityRatio = panelCapacityWatts / (defaultPanelCapacityWatts || 425);
-    const monthlyKwhEnergyConsumption = monthlyAverageEnergyBill / energyCostPerKwh;
-    const yearlyKwhEnergyConsumption = monthlyKwhEnergyConsumption * 12;
-
-    const newConfigId = findSolarConfig(
-      solarPanelConfigs,
-      yearlyKwhEnergyConsumption,
-      panelCapacityRatio,
-      dcToAcDerate
-    );
-
-    setConfigId(newConfigId);
-  }, [
-    monthlyAverageEnergyBill,
-    energyCostPerKwh,
-    panelCapacityWatts,
-    dcToAcDerate,
-    defaultPanelCapacityWatts,
-    solarPanelConfigs,
-    setConfigId
-  ]);
 
   const panelCapacityRatio = panelCapacityWatts / (defaultPanelCapacityWatts || 425);
   const panelsCount = solarPanelConfigs[configId]?.panelsCount || 0;
@@ -98,58 +67,19 @@ export default function SolarFinancialCalculatorCard({
 
   return (
     <div className="space-y-4">
-      {/* Inputs */}
-      <div>
-        <label className="block mb-1">💳 Monthly average energy bill ($)</label>
-        <input
-          type="number"
-          value={monthlyAverageEnergyBill}
-          min={0}
-          onChange={(e) =>
-            setCalculatorInputs({
-              ...calculatorInputs,
-              monthlyAverageEnergyBill: Number(e.target.value)
-            })
-          }
-          className="w-full border rounded px-2 py-1"
-        />
-      </div>
-
-      {/* <div>
-        <label className="block mb-1">⚡ Energy cost per kWh ($)</label>
-        <input
-          type="number"
-          value={energyCostPerKwh}
-          min={0}
-          step={0.01}
-          onChange={(e) =>
-            setCalculatorInputs({
-              ...calculatorInputs,
-              energyCostPerKwh: Number(e.target.value)
-            })
-          }
-          className="w-full border rounded px-2 py-1"
-        />
-      </div>
-
-      <SolarPanelSlider
-        panelCapacityWatts={panelCapacityWatts}
+      <MonthlyEnergyBillInput
+        monthlyAverageEnergyBill={monthlyAverageEnergyBill}
         setCalculatorInputs={setCalculatorInputs}
         calculatorInputs={calculatorInputs}
-      /> */}
+      />
 
-      {/* Slider (always enabled) */}
-      <div>
-        <SolarPanelCountSlider
-          panelsCount={panelsCount}
-          // setPanelsCount={setPanelsCount}
-          solarPanelConfigs={solarPanelConfigs}
-          configId={configId}
-          setConfigId={setConfigId}
-        />
-      </div>
+      <SolarPanelCountSlider
+        panelsCount={panelsCount}
+        solarPanelConfigs={solarPanelConfigs}
+        configId={configId}
+        setConfigId={setConfigId}
+      />
 
-      {/* Summary */}
       <div className="p-4 bg-white rounded shadow border mt-4">
         <h3 className="text-lg font-semibold mb-4">Solar Potential Summary</h3>
         <div className="grid grid-cols-2 gap-4 text-sm text-gray-800">

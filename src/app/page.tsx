@@ -1,19 +1,16 @@
-// main page: where new components will be add with all data layers and solar polygon overlay here. and it'll only return the SolarPanelCountSlider 
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import SearchBar from '@/components/SearchBar';
-import Sections from '@/components/Sections';
 import SolarModal from '@/components/SolarModal';
-import SolarPanelSlider from '@/components/cards/SolarPanelSlider';
+import SolarPanelCountSlider from '@/components/cards/SolarPanelCountSlider';
 import { useSolarData } from '@/hooks/useSolarData';
-import DataLayersSection from '@/components/DataLayersSection';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import CombinedSolarComponent from '@/components/cards/CombinedSolarComponent';
-
+import MonthlyEnergyBillInput from '@/components/cards/MonthlyEnergyBillInput';
+import BuildingInsightsCard from '@/components/cards/BuildingInsightsCard';
+import SunshineMapCard from '@/components/cards/SunshineMapCard';
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
 
@@ -31,6 +28,7 @@ export default function MapPage() {
   const [placesLibrary, setPlacesLibrary] = useState<google.maps.PlacesLibrary | null>(null);
 
   const [open, setOpen] = useState(false);
+  const [showPanels, setShowPanels] = useState(true);
   const [calculatorInputs, setCalculatorInputs] = useState({
     monthlyAverageEnergyBill: 300,
     energyCostPerKwh: 0.36,
@@ -98,9 +96,8 @@ export default function MapPage() {
 
   return (
     <div className="flex flex-row">
-      {/* Sidebar */}
       <aside className="flex-none md:w-96 w-80 p-4 pt-3 overflow-auto">
-        <div className="flex flex-col space-y-2 h-full">
+        <div className="flex flex-col space-y-4 h-full min-h-[500px]">
           {placesLibrary && map && (
             <SearchBar 
               location={location} 
@@ -111,27 +108,22 @@ export default function MapPage() {
             />
           )}
 
+          {buildingInsights && configId !== undefined && (
+            <>
+              <MonthlyEnergyBillInput
+                monthlyAverageEnergyBill={calculatorInputs.monthlyAverageEnergyBill}
+                setCalculatorInputs={setCalculatorInputs}
+                calculatorInputs={calculatorInputs}
+              />
 
-          {/* i want the fields here */}
-
-
-          {/*
-            {geometryLibrary && map && location && (
-            <CombinedSolarComponent
-              buildingInsights={buildingInsights}
-              setBuildingInsights={setBuildingInsights}
-              configId={configId}
-              setConfigId={setConfigId}
-              panelCapacityWatts={calculatorInputs.panelCapacityWatts}
-              googleMapsApiKey={googleMapsApiKey}
-              geometryLibrary={geometryLibrary}
-              location={location}
-              map={map}
-            />
+              <SolarPanelCountSlider
+                panelsCount={buildingInsights.solarPotential.solarPanelConfigs[configId].panelsCount}
+                solarPanelConfigs={buildingInsights.solarPotential.solarPanelConfigs}
+                configId={configId}
+                setConfigId={setConfigId}
+              />
+            </>
           )}
-          */}
-
-          
 
           {buildingInsights && buildingInsights.solarPotential.solarPanelConfigs.length > 0 ? (
             <Button 
@@ -141,6 +133,30 @@ export default function MapPage() {
               View Full Analysis
             </Button>
           ) : <Button className="w-full" size="lg">Data Loading... <Loader2 className="w-4 h-4 animate-spin" /></Button>}
+
+          {buildingInsights && geometryLibrary && map && (
+            <>
+              <BuildingInsightsCard
+                buildingInsights={buildingInsights}
+                configId={configId!}
+                showPanels={showPanels}
+                setShowPanels={setShowPanels}
+                panelCapacityWatts={calculatorInputs.panelCapacityWatts}
+                googleMapsApiKey={googleMapsApiKey}
+                geometryLibrary={geometryLibrary}
+                location={location}
+                map={map}
+              />
+
+              <SunshineMapCard
+                showPanels={showPanels}
+                buildingInsights={buildingInsights}
+                geometryLibrary={geometryLibrary}
+                map={map}
+                googleMapsApiKey={googleMapsApiKey}
+              />
+            </>
+          )}
 
           <SolarModal
             open={open}
@@ -152,25 +168,16 @@ export default function MapPage() {
             monthlyAverageEnergyBillInput={calculatorInputs.monthlyAverageEnergyBill}
             panelCapacityWattsInput={calculatorInputs.panelCapacityWatts}
             energyCostPerKwhInput={calculatorInputs.energyCostPerKwh}
+            configId={configId}
+            setConfigId={setConfigId}
+            calculatorInputs={calculatorInputs}
+            setCalculatorInputs={setCalculatorInputs}
           />
-
-          {/* {buildingInsights && geometryLibrary && map && (
-            <DataLayersSection
-            // showPanels={true}
-            buildingInsights={buildingInsights}
-            geometryLibrary={geometryLibrary}
-            map={map}
-              googleMapsApiKey={googleMapsApiKey}
-            />
-          )} */}
-
-    
 
           <div className="grow" />
         </div>
       </aside>
 
-      {/* Main Map */}
       <div ref={mapElementRef} className="min-h-screen w-full" />
     </div>
   );

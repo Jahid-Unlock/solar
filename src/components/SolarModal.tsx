@@ -13,7 +13,11 @@ export default function SolarModal({
   googleMapsApiKey,
   monthlyAverageEnergyBillInput,
   panelCapacityWattsInput,
-  energyCostPerKwhInput
+  energyCostPerKwhInput,
+  configId,
+  setConfigId,
+  calculatorInputs,
+  setCalculatorInputs
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -24,14 +28,16 @@ export default function SolarModal({
   monthlyAverageEnergyBillInput: number;
   panelCapacityWattsInput: number;
   energyCostPerKwhInput: number;
+  configId: number | undefined;
+  setConfigId: (id: number | undefined) => void;
+  calculatorInputs: any;
+  setCalculatorInputs: (inputs: any) => void;
 }) {
   const [showPanels, setShowPanels] = useState(true);
   const [dcToAcDerate] = useState(0.90);
 
   const {
     buildingInsights,
-    configId,
-    setConfigId,
     loading,
     error
   } = useSolarData(
@@ -76,6 +82,8 @@ export default function SolarModal({
             panelCapacityWattsInput={panelCapacityWattsInput}
             energyCostPerKwhInput={energyCostPerKwhInput}
             dcToAcDerate={dcToAcDerate}
+            calculatorInputs={calculatorInputs}
+            setCalculatorInputs={setCalculatorInputs}
           />
         )}
         
