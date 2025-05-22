@@ -1,0 +1,177 @@
+// main page: where new components will be add with all data layers and solar polygon overlay here. and it'll only return the SolarPanelCountSlider 
+
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
+import SearchBar from '@/components/SearchBar';
+import Sections from '@/components/Sections';
+import SolarModal from '@/components/SolarModal';
+import SolarPanelSlider from '@/components/cards/SolarPanelSlider';
+import { useSolarData } from '@/hooks/useSolarData';
+import DataLayersSection from '@/components/DataLayersSection';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import CombinedSolarComponent from '@/components/cards/CombinedSolarComponent';
+
+
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
+
+const defaultPlace = {
+  name: "The Los Angeles Country Club",
+  address: "10101 Wilshire Blvd, Los Angeles, CA 90024",
+};
+
+export default function MapPage() {
+  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [location, setLocation] = useState<google.maps.LatLng | null>(null);
+  const [geometryLibrary, setGeometryLibrary] = useState<google.maps.GeometryLibrary | null>(null);
+  const [mapsLibrary, setMapsLibrary] = useState<google.maps.MapsLibrary | null>(null);
+  const [placesLibrary, setPlacesLibrary] = useState<google.maps.PlacesLibrary | null>(null);
+
+  const [open, setOpen] = useState(false);
+  const [calculatorInputs, setCalculatorInputs] = useState({
+    monthlyAverageEnergyBill: 300,
+    energyCostPerKwh: 0.36,
+    panelCapacityWatts: 425,
+    dcToAcDerate: 0.9,
+  });
+
+  const {
+    buildingInsights,
+    setBuildingInsights,
+    configId,
+    setConfigId,
+    loading,
+    error
+  } = useSolarData(
+    location,
+    googleMapsApiKey,
+    calculatorInputs.monthlyAverageEnergyBill,
+    calculatorInputs.energyCostPerKwh,
+    calculatorInputs.panelCapacityWatts,
+    calculatorInputs.dcToAcDerate
+  );
+
+  useEffect(() => {
+    const initMap = async () => {
+      const loader = new Loader({ apiKey: googleMapsApiKey, version: 'weekly' });
+
+      const [geometry, maps, places] = await Promise.all([
+        loader.importLibrary('geometry') as Promise<google.maps.GeometryLibrary>,
+        loader.importLibrary('maps') as Promise<google.maps.MapsLibrary>,
+        loader.importLibrary('places') as Promise<google.maps.PlacesLibrary>,
+      ]);
+
+      setGeometryLibrary(geometry);
+      setMapsLibrary(maps);
+      setPlacesLibrary(places);
+
+      const geocoder = new google.maps.Geocoder();
+      const geocoderResponse = await geocoder.geocode({ address: defaultPlace.address });
+
+      if (geocoderResponse.results.length > 0) {
+        const geocoderResult = geocoderResponse.results[0];
+        const loc = geocoderResult.geometry.location;
+        setLocation(loc);
+
+        if (mapElementRef.current) {
+          const mapInstance = new maps.Map(mapElementRef.current, {
+            center: loc,
+            zoom: 19,
+            tilt: 0,
+            mapTypeId: 'satellite',
+            mapTypeControl: false,
+            fullscreenControl: false,
+            rotateControl: false,
+            streetViewControl: false,
+            zoomControl: false,
+          });
+          setMap(mapInstance);
+        }
+      }
+    };
+
+    initMap();
+  }, []);
+
+  return (
+    <div className="flex flex-row">
+      {/* Sidebar */}
+      <aside className="flex-none md:w-96 w-80 p-4 pt-3 overflow-auto">
+        <div className="flex flex-col space-y-2 h-full">
+          {placesLibrary && map && (
+            <SearchBar 
+              location={location} 
+              setLocation={setLocation} 
+              placesLibrary={placesLibrary} 
+              map={map} 
+              initialValue={defaultPlace.name} 
+            />
+          )}
+
+
+          {/* i want the fields here */}
+
+
+          {/*
+            {geometryLibrary && map && location && (
+            <CombinedSolarComponent
+              buildingInsights={buildingInsights}
+              setBuildingInsights={setBuildingInsights}
+              configId={configId}
+              setConfigId={setConfigId}
+              panelCapacityWatts={calculatorInputs.panelCapacityWatts}
+              googleMapsApiKey={googleMapsApiKey}
+              geometryLibrary={geometryLibrary}
+              location={location}
+              map={map}
+            />
+          )}
+          */}
+
+          
+
+          {buildingInsights && buildingInsights.solarPotential.solarPanelConfigs.length > 0 ? (
+            <Button 
+              onClick={() => setOpen(true)}
+              size="lg"
+            >
+              View Full Analysis
+            </Button>
+          ) : <Button className="w-full" size="lg">Data Loading... <Loader2 className="w-4 h-4 animate-spin" /></Button>}
+
+          <SolarModal
+            open={open}
+            setOpen={setOpen}
+            location={location}
+            map={map}
+            geometryLibrary={geometryLibrary}
+            googleMapsApiKey={googleMapsApiKey}
+            monthlyAverageEnergyBillInput={calculatorInputs.monthlyAverageEnergyBill}
+            panelCapacityWattsInput={calculatorInputs.panelCapacityWatts}
+            energyCostPerKwhInput={calculatorInputs.energyCostPerKwh}
+          />
+
+          {/* {buildingInsights && geometryLibrary && map && (
+            <DataLayersSection
+            // showPanels={true}
+            buildingInsights={buildingInsights}
+            geometryLibrary={geometryLibrary}
+            map={map}
+              googleMapsApiKey={googleMapsApiKey}
+            />
+          )} */}
+
+    
+
+          <div className="grow" />
+        </div>
+      </aside>
+
+      {/* Main Map */}
+      <div ref={mapElementRef} className="min-h-screen w-full" />
+    </div>
+  );
+}
